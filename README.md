@@ -37,11 +37,107 @@ Tudo roda no celular, **sem internet**. O app nem pede a permissão `INTERNET`.
 
 Os PDFs ficam na lista da tela inicial. Toque em um para ver a prévia de novo.
 
-## Instalar no celular (via cabo USB)
+## Instalação
 
-O app não está na Play Store: ele é instalado direto do computador.
+O app não está na Play Store: ele é compilado no computador e instalado no celular pelo cabo USB. Na primeira vez são quatro passos; depois, para atualizar, é só o último.
 
-### 1. Liberar a depuração USB no celular (só na primeira vez)
+### 1. Preparar o computador
+
+Ferramentas necessárias:
+
+| Ferramenta | Versão | Para quê |
+| --- | --- | --- |
+| **Git** | qualquer | Baixar o projeto |
+| **JDK** (Java) | 17 ou 21 | Rodar o Gradle e compilar o Kotlin |
+| **Android SDK Platform** | 36 | Compilar o app |
+| **Android SDK Build-Tools** | 35 ou mais nova | Empacotar o APK |
+| **Android SDK Platform-Tools** (`adb`) | mais recente | Conversar com o celular pelo cabo |
+| ~~Gradle~~ | não precisa instalar | O `./gradlew` do projeto baixa a versão certa (8.14.3) sozinho |
+| ~~Kotlin, OpenCV, bibliotecas~~ | não precisa instalar | O Gradle baixa tudo na primeira compilação |
+
+Também é preciso:
+- uns **4 GB livres** em disco, entre o Android SDK e o cache do Gradle;
+- **internet na primeira compilação**, para baixar as bibliotecas. Depois disso elas ficam dentro do APK, e o app nunca usa internet.
+
+Há dois jeitos de instalar essas ferramentas.
+
+#### Opção A: Android Studio (mais fácil, qualquer sistema)
+
+1. Baixe e instale o [Android Studio](https://developer.android.com/studio). Ele já vem com o JDK, o SDK e o `adb`.
+2. Na primeira abertura, siga o assistente com a instalação padrão ("Standard").
+3. Abra a pasta do projeto (**File → Open**) e espere o Gradle sincronizar. Se ele pedir para instalar o "Android SDK Platform 36", aceite.
+
+Daí para instalar no celular basta escolher o aparelho na barra de cima e clicar em **Run ▶**, depois de fazer o passo 3 (depuração USB).
+
+#### Opção B: só linha de comando
+
+**Linux**
+
+```bash
+# Arch / Manjaro
+sudo pacman -S jdk21-openjdk git android-udev
+# Ubuntu / Debian
+sudo apt install openjdk-21-jdk git android-sdk-platform-tools-common
+```
+
+O pacote `android-udev` / `android-sdk-platform-tools-common` traz as regras que deixam o `adb` acessar o celular sem `sudo`.
+
+Depois baixe as **"Command line tools only"** no fim da página do [Android Studio](https://developer.android.com/studio#command-line-tools-only) e instale o SDK:
+
+```bash
+mkdir -p ~/Android/Sdk/cmdline-tools
+unzip commandlinetools-linux-*.zip -d ~/Android/Sdk/cmdline-tools
+mv ~/Android/Sdk/cmdline-tools/cmdline-tools ~/Android/Sdk/cmdline-tools/latest
+
+# coloque estas duas linhas também no ~/.bashrc (ou ~/.zshrc)
+export ANDROID_HOME=$HOME/Android/Sdk
+export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+
+sdkmanager "platform-tools" "platforms;android-36" "build-tools;35.0.0"
+sdkmanager --licenses   # aceite com "y"
+```
+
+**macOS** (com [Homebrew](https://brew.sh))
+
+```bash
+brew install openjdk@21 git
+brew install --cask android-commandlinetools android-platform-tools
+export ANDROID_HOME=/opt/homebrew/share/android-commandlinetools
+sdkmanager "platforms;android-36" "build-tools;35.0.0"
+sdkmanager --licenses
+```
+
+**Windows**: o caminho mais simples é a Opção A (Android Studio). Ainda é preciso:
+- instalar o Git (`winget install Git.Git`);
+- para celulares Samsung, instalar o [driver USB da Samsung](https://developer.samsung.com/android-usb-driver), senão o `adb` não enxerga o aparelho;
+- nos comandos abaixo, usar `gradlew.bat` no lugar de `./gradlew`.
+
+Para conferir se ficou tudo certo:
+
+```bash
+java -version      # 17 ou 21
+adb version
+```
+
+### 2. Baixar o projeto
+
+```bash
+git clone https://github.com/AndreFilho0/MyPDF.git
+cd MyPDF
+```
+
+O Gradle precisa saber onde está o Android SDK. O Android Studio resolve isso sozinho, e na linha de comando a variável `ANDROID_HOME` do passo anterior já basta. Se der o erro "SDK location not found", crie o arquivo `local.properties` na raiz do projeto:
+
+```properties
+# Linux
+sdk.dir=/home/SEU_USUARIO/Android/Sdk
+# macOS: sdk.dir=/Users/SEU_USUARIO/Library/Android/sdk
+# Windows: sdk.dir=C\:\\Users\\SEU_USUARIO\\AppData\\Local\\Android\\Sdk
+```
+
+### 3. Liberar a depuração USB no celular (só na primeira vez)
+
+O celular precisa ter **Android 8.0 ou superior**.
 
 1. **Configurações → Sobre o telefone → Informações de software** (no Samsung). Em outras marcas costuma ser só "Sobre o telefone".
 2. Toque **7 vezes** em **"Número de compilação"** até aparecer "Modo de desenvolvedor ativado".
@@ -58,7 +154,7 @@ adb devices
 
 Se aparecer `unauthorized`, desbloqueie o celular e aceite a pergunta. Se não aparecer nada, puxe a barra de notificações e mude o modo USB para **Transferência de arquivos**.
 
-### 2. Compilar e instalar
+### 4. Compilar e instalar
 
 Na pasta do projeto:
 
@@ -66,7 +162,9 @@ Na pasta do projeto:
 ./gradlew installDebug
 ```
 
-Pronto, o **MyPDF** aparece na lista de apps. Depois de instalado, pode tirar o cabo: o app funciona normalmente sem o computador.
+A primeira vez demora alguns minutos, porque o Gradle baixa as bibliotecas. Depois ficam uns 30 segundos.
+
+Pronto, o **MyPDF** aparece na lista de apps. Pode tirar o cabo: o app funciona normalmente sem o computador. Quando não estiver usando, vale desligar a Depuração USB.
 
 Para **atualizar** depois de mudar o código, ligue o cabo e rode o mesmo comando. O histórico de PDFs é mantido.
 
@@ -79,16 +177,15 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 Também dá para copiar esse `.apk` para o celular e abrir pelo gerenciador de arquivos. Nesse caso o Android pede para permitir "instalar apps desconhecidos".
 
-## Requisitos para compilar
+### Problemas comuns
 
-- JDK 17 ou mais novo
-- Android SDK com a plataforma 36 (Android Studio já instala). O caminho do SDK vai no `local.properties`:
-  ```properties
-  sdk.dir=/home/SEU_USUARIO/Android/Sdk
-  ```
-- Internet só na **primeira** compilação, para o Gradle baixar as bibliotecas. Depois disso elas ficam dentro do APK.
-
-O celular precisa ter **Android 8.0 (API 26) ou superior**.
+| Erro | Solução |
+| --- | --- |
+| `SDK location not found` | Defina `ANDROID_HOME` ou crie o `local.properties` (passo 2) |
+| `Unsupported class file major version` ou erro de versão do Java | Use o JDK 17 ou 21 (`java -version`). Com vários instalados, aponte o `JAVA_HOME` para um deles |
+| `Failed to install the following SDK components` / licenças | Rode `sdkmanager --licenses` e aceite |
+| `adb devices` vazio no Linux | Instale as regras udev (passo 1) e reconecte o cabo |
+| `INSTALL_FAILED_UPDATE_INCOMPATIBLE` | O app foi instalado de outro computador (outra assinatura). Desinstale o MyPDF do celular e instale de novo |
 
 ### Emulador e outras arquiteturas
 
@@ -179,3 +276,7 @@ app/src/main/java/com/andre/scanner/
 - Remover automaticamente o dedo e a espiral do caderno das bordas
 - OCR para deixar o texto do PDF pesquisável
 - Recortar várias folhas numa mesma foto
+
+## Licença
+
+Distribuído sob a licença MIT. Veja o arquivo [LICENSE](LICENSE).
