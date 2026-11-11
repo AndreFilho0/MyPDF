@@ -9,6 +9,14 @@ plugins {
 // Para o emulador: ./gradlew installDebug -Pabis=x86_64
 val abiList = (findProperty("abis") as String?)?.split(",")?.map { it.trim() } ?: listOf("arm64-v8a")
 
+// Versão: o pipeline de release passa -PversionName=1.2.0 -PversionCode=10200 a partir da tag.
+val appVersionName = (findProperty("versionName") as String?) ?: "1.0.0"
+val appVersionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
+
+// Chave de assinatura da release. No CI vem dos secrets do GitHub; localmente dá para
+// exportar as mesmas variáveis. Sem elas, a release é assinada com a chave de debug.
+val releaseKeystore: String? = System.getenv("MYPDF_KEYSTORE")?.takeIf { it.isNotBlank() }
+
 android {
     namespace = "com.andre.scanner"
     compileSdk = 36
@@ -17,10 +25,21 @@ android {
         applicationId = "com.andre.scanner"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ndk { abiFilters += abiList }
+    }
+
+    signingConfigs {
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = file(releaseKeystore)
+                storePassword = System.getenv("MYPDF_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("MYPDF_KEY_ALIAS")
+                keyPassword = System.getenv("MYPDF_KEY_PASSWORD")
+            }
+        }
     }
 
     buildTypes {
@@ -28,8 +47,7 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Assina com a chave de debug para poder instalar via USB sem configurar keystore.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName(if (releaseKeystore != null) "release" else "debug")
         }
     }
 

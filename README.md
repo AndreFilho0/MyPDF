@@ -6,6 +6,21 @@ App Android em Kotlin que transforma fotos de folhas em um PDF A4. Ele desentort
 
 Tudo roda no celular, **sem internet**. O app nem pede a permissão `INTERNET`.
 
+[![CI](https://github.com/AndreFilho0/MyPDF/actions/workflows/ci.yml/badge.svg)](https://github.com/AndreFilho0/MyPDF/actions/workflows/ci.yml)
+[![Última versão](https://img.shields.io/github/v/release/AndreFilho0/MyPDF?label=baixar%20APK)](https://github.com/AndreFilho0/MyPDF/releases/latest)
+
+## Baixar e instalar (sem precisar de computador)
+
+1. No celular Android (8.0 ou superior), abra a página da **[última versão](https://github.com/AndreFilho0/MyPDF/releases/latest)**.
+2. Em *Assets*, baixe o arquivo `MyPDF-vX.Y.Z.apk`.
+3. Abra o arquivo baixado. Se o Android pedir, permita **"Instalar apps desconhecidos"** para o navegador ou o gerenciador de arquivos, e toque em **Instalar**.
+
+Para atualizar, baixe a versão nova e instale por cima: os PDFs gerados são mantidos.
+
+O APK é gerado para celulares de 64 bits (`arm64-v8a`), que são praticamente todos os lançados de 2017 para cá.
+
+Se você quer compilar o código ou mexer no projeto, veja [Instalação pelo código-fonte](#instalação-pelo-código-fonte).
+
 ## O que ele faz
 
 - Tira várias fotos seguidas sem sair da câmera, e mostra o contorno da folha ao vivo
@@ -37,9 +52,9 @@ Tudo roda no celular, **sem internet**. O app nem pede a permissão `INTERNET`.
 
 Os PDFs ficam na lista da tela inicial. Toque em um para ver a prévia de novo.
 
-## Instalação
+## Instalação pelo código-fonte
 
-O app não está na Play Store: ele é compilado no computador e instalado no celular pelo cabo USB. Na primeira vez são quatro passos; depois, para atualizar, é só o último.
+Este caminho é para quem quer compilar o app. Ele é compilado no computador e instalado no celular pelo cabo USB. Na primeira vez são quatro passos; depois, para atualizar, é só o último.
 
 ### 1. Preparar o computador
 
@@ -195,6 +210,66 @@ Para deixar o APK menor, ele é gerado só para `arm64-v8a`, que é a arquitetur
 ./gradlew installDebug -Pabis=x86_64
 # ou várias: -Pabis=arm64-v8a,x86_64
 ```
+
+## Publicar uma nova versão (CI/CD)
+
+O projeto tem dois pipelines no GitHub Actions (`.github/workflows/`):
+
+| Pipeline | Quando roda | O que faz |
+| --- | --- | --- |
+| **CI** (`ci.yml`) | Push ou pull request na `main` | Roda os testes de unidade e compila os APKs de debug e release. O de debug fica disponível por 7 dias na aba Actions |
+| **Release** (`release.yml`) | Push de uma tag `vX.Y.Z` | Roda os testes, gera o APK assinado e publica uma Release com o `MyPDF-vX.Y.Z.apk` para download |
+
+### Configuração (só na primeira vez)
+
+O APK da Release é assinado sempre com a mesma chave. É isso que permite instalar uma versão nova por cima da antiga. A chave fica com você, e o GitHub recebe uma cópia como secret.
+
+**1. Criar a chave**, fora da pasta do projeto:
+
+```bash
+mkdir -p ~/.android-keys
+keytool -genkeypair -v -keystore ~/.android-keys/mypdf-release.jks \
+  -alias mypdf -keyalg RSA -keysize 4096 -validity 10000
+```
+
+O `keytool` vem junto com o JDK. Ele pede uma senha e alguns dados; os dados podem ser só o seu nome.
+
+> **Guarde uma cópia desse arquivo `.jks` e da senha** num lugar seguro, como um gerenciador de senhas. Se perder, as próximas versões não vão instalar por cima das antigas: quem tiver o app vai precisar desinstalar e perder o histórico.
+
+**2. Cadastrar os secrets** em **GitHub → repositório → Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret | Valor |
+| --- | --- |
+| `MYPDF_KEYSTORE_BASE64` | Saída de `base64 -w0 ~/.android-keys/mypdf-release.jks` (no macOS: `base64 -i ~/.android-keys/mypdf-release.jks`) |
+| `MYPDF_KEYSTORE_PASSWORD` | A senha escolhida no `keytool` |
+| `MYPDF_KEY_ALIAS` | `mypdf` |
+| `MYPDF_KEY_PASSWORD` | A mesma senha |
+
+### Lançar uma versão
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Em uns 5 minutos a Release aparece em **Releases**, com o APK, o arquivo `.sha256` e as notas geradas a partir dos commits. O número da versão vem da tag: `v1.2.3` vira a versão `1.2.3` do app.
+
+Para as próximas, é só aumentar o número (`v1.0.1`, `v1.1.0`...). Uma tag fora do formato `vX.Y.Z` faz o pipeline falhar com uma mensagem explicando.
+
+### Gerar o APK assinado no computador
+
+Para gerar localmente o mesmo APK que o pipeline publica:
+
+```bash
+export MYPDF_KEYSTORE=~/.android-keys/mypdf-release.jks
+export MYPDF_KEYSTORE_PASSWORD='sua senha'
+export MYPDF_KEY_ALIAS=mypdf
+export MYPDF_KEY_PASSWORD='sua senha'
+./gradlew assembleRelease -PversionName=1.0.0 -PversionCode=10000
+# APK em app/build/outputs/apk/release/app-release.apk
+```
+
+Sem essas variáveis, o `assembleRelease` assina com a chave de debug. Serve para testar, mas não para distribuir.
 
 ## Testes
 

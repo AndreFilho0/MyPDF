@@ -5,3 +5,8 @@ local.properties
 *.iml
 .kotlin/
 captures/
+
+# Chave de assinatura da release: nunca vai para o repositório
+*.jks
+*.keystore
+keystore.properties
