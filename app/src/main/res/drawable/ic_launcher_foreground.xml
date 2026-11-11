@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- sombra da folha -->
+    <path android:fillColor="#33000000"
+        android:pathData="M43,29 H63 L73,39 V81 Q73,83 71,83 H43 Q41,83 41,81 V31 Q41,29 43,29 Z" />
+    <!-- folha -->
+    <path android:fillColor="#FFFFFFFF"
+        android:pathData="M42,27 H62 L72,37 V79 Q72,81 70,81 H42 Q40,81 40,79 V29 Q40,27 42,27 Z" />
+    <!-- canto dobrado -->
+    <path android:fillColor="#FFC7D2FE"
+        android:pathData="M62,27 V35 Q62,37 64,37 H72 Z" />
+    <!-- linhas de texto -->
+    <path android:strokeColor="#FFC7D2FE" android:strokeWidth="2.5" android:strokeLineCap="round"
+        android:pathData="M46,41 H57 M46,47 H66 M46,53 H66" />
+    <!-- selo -->
+    <path android:fillColor="#FFF43F5E"
+        android:pathData="M35,58 H61 Q64,58 64,61 V72 Q64,75 61,75 H35 Q32,75 32,72 V61 Q32,58 35,58 Z" />
+    <!-- letras P D F -->
+    <path android:strokeColor="#FFFFFFFF" android:strokeWidth="2.2"
+        android:strokeLineCap="round" android:strokeLineJoin="round"
+        android:pathData="M36.5,71.5 V61.5 H39.5 A2.75,2.75 0 0 1 39.5,67 H36.5 M44.5,61.5 V71.5 H46.5 A5,5 0 0 0 46.5,61.5 Z M54,71.5 V61.5 H60 M54,66.5 H59" />
+</vector>
